@@ -14,10 +14,10 @@ namespace LearningDecisionTree
                 return;
             }
             Parser parser = new Parser();
-            string trainingFileName = args[1];
-            string testingFileName = args[2];
+            string trainingFileName = args[0];
+            string testingFileName = args[1];
             ID3Data id3Data = parser.ParseID3InformationFile(trainingFileName);
-            id3Data.ToString();
+            Console.Write(id3Data.ToString());
 
         }
         /// <summary>
@@ -35,6 +35,11 @@ namespace LearningDecisionTree
     /// </summary>
     class Parser
     {
+        /// <summary>
+        /// Translate the file data to ID3 data.
+        /// </summary>
+        /// <param name="filename">Filename to read from</param>
+        /// <returns>ID3Data object</returns>
         public ID3Data ParseID3InformationFile(string filename)
         {
             /**
@@ -58,7 +63,8 @@ namespace LearningDecisionTree
                 cleanFileContents[i++], 
                 cleanFileContents[i++] // NOTE: This gets line 0 and 1 (the class labels)
                 };
-            for (int f = 1; f < (int)(cleanFileContents[i++]); f++, i++) // NOTE: This line is the number of features
+            int attributeCount = Int32.Parse(cleanFileContents[i++].ToString());
+            for (int f = 0; f < attributeCount; f++, i++) // NOTE: This line is the number of features
             {
                 string[] line = cleanFileContents[i].ToString().Split(' ');
                 id3Data.Attributes.Add(line[0], new ArrayList() {
@@ -66,7 +72,8 @@ namespace LearningDecisionTree
                     line[2]
                 });
             }
-            for (int e = 0; e < (int)(cleanFileContents[i++]); e++, i++)
+            int dataItemCount = Int32.Parse(cleanFileContents[i++].ToString());
+            for (int e = 0; e < dataItemCount; e++, i++)
             {
                 string[] line = System.Text.RegularExpressions.Regex.Split(cleanFileContents[i].ToString(), @"\s+");
                 id3Data.TestData.Add(
@@ -84,25 +91,35 @@ namespace LearningDecisionTree
             }
             return id3Data;
         }
+        /// <summary>
+        /// Removes all comment and empty lines.
+        /// </summary>
+        /// <param name="fileAsString">File as a string</param>
+        /// <returns>File as an arraylist of lines</returns>
         ArrayList RemoveCommentsAndEmptyLines(string fileAsString)
         {
             ArrayList output = new ArrayList();
             string[] fileContentsByLine = fileAsString.Split('\n');
             foreach (string line in fileContentsByLine)
             {
-                if (line.StartsWith("//") || line.StartsWith("\n")) break; // Don't add the line to the list
+                if (line.StartsWith("//") || line.StartsWith("\n") || line == "") continue; // Don't add the line to the list
                     // NOTE: Handles comment lines and empty lines
                 else output.Add(line);
             }
             return output;
         }
+        /// <summary>
+        /// Gets the file as a single string.
+        /// </summary>
+        /// <param name="filename">Filename to read from</param>
+        /// <returns>File as a string</returns>
         public string GetFileAsString(string filename)
         {
             System.IO.StreamReader reader = new System.IO.StreamReader(filename);
             string output = "";
             while(reader.Peek() >= 0)
             {
-                output += reader.ReadLine();
+                output += reader.ReadLine() + "\n";
             }
             return output;
         }
@@ -202,20 +219,21 @@ namespace LearningDecisionTree
         public ArrayList TestData { get; set; }
         public ID3Data() 
         {
+            this.Attributes = new Dictionary<string, ArrayList>();
             this.TestData = new ArrayList();
         }
         public override string ToString()
         {
-            string output = "ID3Data [ Labels: ";
-            foreach (string label in Labels) output += "\t" + label + ", \n";
+            string output = "ID3Data [ \nLabels: \n";
+            foreach (string label in this.Labels) output += "\t" + label + ", \n";
             output += "],\nAttributes: [\n";
             foreach (KeyValuePair<string, ArrayList> kvp in this.Attributes)
             {
-                output += "\t" + kvp.Key + ": {";
-                foreach (Attribute a in kvp.Value) output += "\t\t" + a.ToString() + ",\n";
+                output += "\t" + kvp.Key + ": {\n";
+                foreach (string a in kvp.Value) output += "\t\t" + a.ToString() + ",\n";
                 output += "\t}\n";
             }
-            output += "],\nData: [";
+            output += "],\nData: [\n";
             foreach (Data d in this.TestData)
             {
                 output += "\t" + d.ToString() + "\n";
@@ -261,9 +279,9 @@ namespace LearningDecisionTree
         /// <returns>A human readable class string</returns>
         public override string ToString()
         {
-            string output = "Data [ Name: " + this.Name + ",\n Category: " + this.Category + ",\n Attributes: ";
-            foreach (Attribute a in this.Attributes) output += "\t" + a.ToString() + ",\n";
-            output += "]\n";
+            string output = "Data [ \n\tName: " + this.Name + ",\n\tCategory: " + this.Category + ",\n\tAttributes: {\n";
+            foreach (string a in this.Attributes) output += "\t\t" + a.ToString() + ",\n";
+            output += "\t\t}\n\t]\n";
             return output;
         }
     }
