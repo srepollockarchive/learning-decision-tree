@@ -156,16 +156,30 @@ namespace LearningDecisionTree
                     node.AddBranch(new Node());
                 return tree;
              */
-            if (CheckSameCategory(examples)) return new Node(((Data)(examples[0])).Category);
-            if (attributes.Count == 0) return new Node(GetMostCommonCategory(examples));
+            #region Leaf Nodes
+            if (CheckSameCategory(examples))
+            {
+                Node node = new Node();
+                node.Label = ((Data)(examples[0])).Category;
+                return node;
+            }
+            if (attributes.Count == 0)
+            {
+                Node node = new Node();
+                node.Label = GetMostCommonCategory(examples);
+                return node;
+            }
+            #endregion
             string bestAttribute = ChooseAttribute(examples, attributes, data);
-            Node tree = new Node(bestAttribute);
+            Node tree = new Node();
+            tree.Label = bestAttribute;
             foreach (string value in data.Attributes[bestAttribute])
             {
                 ArrayList subset = SubSet(examples, value);
                 ArrayList removedAttributes = (ArrayList)(attributes.Clone());
                 removedAttributes.Remove(bestAttribute);
                 Node subTree = ID3(examples, removedAttributes, data);
+                subTree.Decision = value;
                 tree.AddBranch(subTree);
             }
             return tree;
@@ -216,7 +230,7 @@ namespace LearningDecisionTree
             foreach(string attribute in attributes)
             {
                 double temp = InformationGain(examples, attribute, Entropy(examples), data);
-                if (best < temp)
+                if (temp > best)
                 {
                     output = attribute;
                     best = temp;
@@ -255,14 +269,13 @@ namespace LearningDecisionTree
     }
     public class Node
     {
-        /// <summary>
-        /// Label for the node
-        /// </summary>
-        public string Category { get; set; } 
+        public string Label { get; set; } 
+        public string Decision { get; set; }
         public ArrayList Children { get; set; }
-        public Node(string category)
+        public Node()
         {
-            this.Category = category;
+            this.Label = null;
+            this.Decision = null;
             this.Children = new ArrayList();
         }
         public void AddBranch(Node root)
@@ -282,7 +295,7 @@ namespace LearningDecisionTree
                 Console.Write("|-");
                 indent += "| ";
             }
-            Console.WriteLine(Category);
+            Console.WriteLine(Label + " || " + Decision);
 
             for (int i = 0; i < Children.Count; i++)
                 ((Node)(Children[i])).PrintPretty(indent, i == Children.Count - 1);
