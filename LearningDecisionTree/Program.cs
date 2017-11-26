@@ -150,7 +150,8 @@ namespace LearningDecisionTree
             //      return a leaf with most common category in examples
             if (attributes.Count == 0)
             {
-                string mostCommon = GetMostCommonValue(examples);
+                // string mostCommon = GetMostCommonValue(examples);
+                string mostCommon = GetMostCommonCategory(examples);
                 return new Node(Label:mostCommon, Decision:null);
             }
             string bestAttribute = GetBestAttribute(examples, attributes, data);
@@ -195,6 +196,18 @@ namespace LearningDecisionTree
                     if (dictionary.ContainsKey(value))  dictionary[value] += 1;
                     else dictionary.Add(value, 1);
                 }
+            }
+            KeyValuePair<string, int> max = new KeyValuePair<string, int>();
+            foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value > max.Value) max = kvp;
+            return max.Key;
+        }
+        string GetMostCommonCategory(ArrayList examples)
+        {
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            foreach (Data example in examples)
+            {
+                if (dictionary.ContainsKey(example.Category))  dictionary[example.Category] += 1;
+                else dictionary.Add(example.Category, 1);
             }
             KeyValuePair<string, int> max = new KeyValuePair<string, int>();
             foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value > max.Value) max = kvp;
