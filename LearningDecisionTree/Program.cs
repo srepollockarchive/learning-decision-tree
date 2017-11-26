@@ -14,11 +14,12 @@ namespace LearningDecisionTree
                 return;
             }
             Parser parser = new Parser();
+            DecisionTree dt = new DecisionTree();
             string trainingFileName = args[0];
             string testingFileName = args[1];
             ID3Data id3Data = parser.ParseID3InformationFile(trainingFileName);
-            Console.Write(id3Data.ToString());
-
+            Node learnedTree = dt.ID3(id3Data.TestData, id3Data.GetRawAttributeValues(), id3Data);
+            Console.WriteLine(learnedTree.ToString());
         }
         /// <summary>
         /// Prints the help command to the console for the user.
@@ -124,49 +125,124 @@ namespace LearningDecisionTree
             return output;
         }
     }
-    public class Tree
+    public class DecisionTree
     {
-        public Tree()
+        public DecisionTree()
         {
 
         }
-        public void ID3(ArrayList examples, ArrayList attributes)
+        public Node ID3(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             /**
-                if all instances in examples are class P:
-                    create node P and stop
-                else:
-                    select an attribute and create a decision node
-                    partition C into subsets according to values of V
-                    apply recursively to each of the subsets
+                if (CheckSameCategory(examples))
+                    return new LeafNode(examples.first.category)
+                if (attributes.count == 0)
+                    return new LeafNode(GetMostCommonCategory(examples))
+                string bestAttribute = ChooseAttribute(examples, attributes) // best classifies examples
+                Node tree = new Node(bestAttribute) // new node with category of best attribute
+                foreach (string value in bestAttribute)
+                    ArrayList subset = Subset(examples, value) // examples where example.Attribute[bestAttribute] == value
+                    ArrayList removedAttributes = attributes.remove(bestAttribute)
+                    Node subtree = ID3(subset, removedAttributes)
+                    node.AddBranch(new Node());
+                return tree;
              */
-             
-        }
-        double Entropy(ArrayList examples)
-        {
-            double output = 0;
-            Dictionary<string, int> dictionary = SummarizeExamples(examples, targetAttribute);
-            foreach (KeyValuePair<string, int> kvp in dictionary)
+            if (CheckSameCategory(examples)) return new Node(((Data)(examples[0])).Category);
+            if (attributes.Count == 0) return new Node(GetMostCommonCategory(examples));
+            string bestAttribute = ChooseAttribute(examples, attributes, data);
+            Node tree = new Node(bestAttribute);
+            foreach (string value in data.GetSimilarAttributeValues(bestAttribute))
             {
-                float proportion = dictionary[kvp.Key] / examples.Count;
-                output -= proportion * Math.Log(proportion, 2);
+                ArrayList subset = SubSet(examples, value);
+                ArrayList removedAttributes = (ArrayList)(attributes.Clone());
+                removedAttributes.Remove(bestAttribute);
+                Node subTree = ID3(examples, removedAttributes, data);
+                tree.AddBranch(subTree);
             }
-            return output;
+            return tree;
         }
-        Dictionary<string, int> SummarizeExamples(ArrayList examples, string targetAttribute)
+        bool CheckSameCategory(ArrayList examples)
         {
-            Dictionary<string, int> output = new Dictionary<string, int>();
+            Data dataObject = (Data)(examples[0]);
+            string firstCategory = dataObject.Category;
             foreach (Data example in examples)
             {
-                foreach (string value in example.Attributes)
+                if (example.Category != firstCategory) return false;
+            }
+            return true;
+        }
+        string GetMostCommonCategory(ArrayList examples)
+        {
+            string output = "";
+            int best = int.MinValue;
+            Dictionary<string, int> dictionary = SummarizeExamples(examples);
+            foreach (KeyValuePair<string, int> kvp in dictionary)
+            {
+                if (dictionary[kvp.Key] > best)
                 {
-                    output[value] += 1;
+                    output = kvp.Key;
+                    best = dictionary[kvp.Key];
                 }
             }
             return output;
         }
+        Dictionary<string, int> SummarizeExamples(ArrayList examples)
+        {
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            foreach (Data example in examples)
+            {
+                int value;
+                if (dictionary.TryGetValue(example.Category, out value))
+                    dictionary[example.Category] += 1;
+                else
+                    dictionary.Add(example.Category, 1);
+            }
+            return dictionary;
+        }
+        string ChooseAttribute(ArrayList examples, ArrayList attributes, ID3Data data)
+        {
+            string output = "";
+            double best = double.MinValue;
+            foreach(string attribute in attributes)
+            {
+                double temp = InformationGain(examples, attribute, Entropy(examples), data);
+                if (best < temp)
+                {
+                    output = attribute;
+                    best = temp;
+                }
+            }
+            return output;
+        }
+        ArrayList SubSet(ArrayList examples, string attributeValue)
+        {
+            ArrayList output = new ArrayList();
+            foreach (Data example in examples) if (example.Attributes.Contains(attributeValue)) output.Add(example);
+            return output;
+        }
+        double InformationGain(ArrayList examples, string attribute, double entropyOfSet, ID3Data data)
+        {
+            double gain = entropyOfSet;
+            foreach (string value in data.GetSimilarAttributeValues(attribute))
+            {
+                ArrayList subset = SubSet(examples, value);
+                gain -= subset.Count / examples.Count * Entropy(subset);
+            }
+            return 0.0;
+        }
+        double Entropy(ArrayList examples)
+        {
+            double output = 0;
+            Dictionary<string, int> dictionary = SummarizeExamples(examples);
+            foreach (KeyValuePair<string, int> kvp in dictionary)
+            {
+                double proportion = dictionary[kvp.Key] / examples.Count;
+                output -= proportion * Math.Log(proportion, 2);
+            }
+            return output;
+        }
     }
-    public abstract class Node
+    public class Node
     {
         /// <summary>
         /// Label for the node
@@ -176,48 +252,37 @@ namespace LearningDecisionTree
         public Node(string category)
         {
             this.Category = category;
+            this.Children = new ArrayList();
         }
-        public void AddBranch(Tree root)
+        public void AddBranch(Node root)
         {
             this.Children.Add(root);
         }
-    }
-    /// <summary>
-    /// Represents a choice between a number of alternatives.
-    /// </summary>
-    public class DecisionNode: Node
-    {
-        public DecisionNode(string category): base(category) {}
-        public bool Decision()
+        public void PrintPretty(string indent, bool last)
         {
-            return true; // TODO: Some decision happens here
-        }
-    }
-    /// <summary>
-    /// Represents a classification or decision.
-    /// </summary>
-    public class LeafNode: Node
-    {
-        public LeafNode(string category): base(category) {}
-    }
-    /// <summary>
-    /// Attribute class for the Data class
-    /// </summary>
-    class Attribute
-    {
-        public string Name { get; set; }
-        public string Value { get; set; }
-        public Attribute(string name, string value)
-        {
-            this.Name = name;
-            this.Value = value;
+            Console.Write(indent);
+            if (last)
+            {
+                Console.Write("\\-");
+                indent += "  ";
+            }
+            else
+            {
+                Console.Write("|-");
+                indent += "| ";
+            }
+            Console.WriteLine(Category);
+
+            for (int i = 0; i < Children.Count; i++)
+                ((Node)(Children[i])).PrintPretty(indent, i == Children.Count - 1);
         }
         public override string ToString()
-        {
-            return "Attribute [ Name: " + this.Name + ", Value: " + this.Value + " ]";
+        {   
+            PrintPretty("", false);
+            return "";
         }
     }
-    class ID3Data
+    public class ID3Data
     {
         public ArrayList Categories { get; set; }
         public Dictionary<string, ArrayList> Attributes { get; set; }
@@ -227,9 +292,34 @@ namespace LearningDecisionTree
             this.Attributes = new Dictionary<string, ArrayList>();
             this.TestData = new ArrayList();
         }
+        public ArrayList GetRawAttributeValues()
+        {
+            ArrayList output = new ArrayList();
+            foreach (KeyValuePair<string, ArrayList> kvp in Attributes) foreach (string value in Attributes[kvp.Key]) output.Add(value);
+            return output;
+        }
+        public ArrayList GetRawAttributes()
+        {
+            ArrayList output = new ArrayList();
+            foreach (KeyValuePair<string, ArrayList> kvp in Attributes) output.Add(kvp.Key);
+            return output;
+        }
+        public ArrayList GetSimilarAttributeValues(string attribute)
+        {
+            ArrayList output = new ArrayList();
+            foreach (KeyValuePair<string, ArrayList> kvp in Attributes)
+            {
+                if (Attributes[kvp.Key].Contains(attribute))
+                {
+                    foreach (string value in Attributes[kvp.Key]) output.Add(value);
+                    return output;
+                }
+            }
+            return null;
+        }
         public override string ToString()
         {
-            string output = "ID3Data [ \nLabels: \n";
+            string output = "ID3Data [ \nCategories: \n";
             foreach (string label in this.Categories) output += "\t" + label + ", \n";
             output += "],\nAttributes: [\n";
             foreach (KeyValuePair<string, ArrayList> kvp in this.Attributes)
