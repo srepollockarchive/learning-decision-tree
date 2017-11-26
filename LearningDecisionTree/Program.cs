@@ -19,7 +19,14 @@ namespace LearningDecisionTree
             string testingFileName = args[1];
             ID3Data id3Data = parser.ParseID3InformationFile(trainingFileName);
             Node learnedTree = dt.ID3(id3Data.TestData, id3Data.GetKeyAttributes(), id3Data);
+            // Part One
+            Console.WriteLine("Learned Tree:\n-----------");
             Console.WriteLine(learnedTree.ToString());
+            // Part Two
+            ID3Data testingData = parser.ParseID3InformationFile(testingFileName);
+            ArrayList treeClassification = learnedTree.GetTreeClassifications(testingData);
+            Console.WriteLine("Classifications:\n-------------");
+            Console.WriteLine(testingData.CompareClassifications(treeClassification));
             Console.WriteLine("\n\nPress any key to exit...");
             Console.ReadKey();
         }
@@ -133,6 +140,7 @@ namespace LearningDecisionTree
         {
 
         }
+        #region ID3
         public Node ID3(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             /**
@@ -295,6 +303,7 @@ namespace LearningDecisionTree
                 }
             return dictionary;
         }
+        #endregion
     }
     public class Node
     {
@@ -335,6 +344,34 @@ namespace LearningDecisionTree
             for (int i = 0; i < Children.Count; i++)
                 ((Node)(Children[i])).PrintPretty(indent, i == Children.Count - 1);
         }
+        #region Check Data
+        string Traverse(Data example)
+        {
+            if (Children.Count == 0) // NOTE: Hit leaf
+            {
+                return this.Label;
+            }
+            else
+            {
+                foreach (Node child in Children)
+                {
+                    if (example.Attributes.Contains(child.Decision))
+                        return child.Traverse(example);
+                }
+            }
+            return null; // DEBUG: Should never hit
+        }
+        public ArrayList GetTreeClassifications(ID3Data testingData)
+        {
+            ArrayList output = new ArrayList();
+            foreach (Data example in testingData.TestData)
+            {
+                string exmapleClassification = Traverse(example);
+                output.Add(Tuple.Create<string, string>(example.Name, exmapleClassification));
+            }
+            return output;
+        }
+        #endregion
         public override string ToString()
         {   
             PrintPretty("", false);
@@ -374,6 +411,21 @@ namespace LearningDecisionTree
                     return output;
                 }
             }
+            return output;
+        }
+        public string CompareClassifications(ArrayList classifications)
+        {
+            string output = "";
+            int count = 0, errorCount = 0;
+            foreach (Tuple<string, string> classification in classifications) {
+                if (((Data)(TestData[count])).Category != classification.Item2)
+                {
+                    output += classification.Item1 + ": CLASSIFICATION INCORRECT\n";
+                    errorCount++;
+                }
+                count++;
+            }
+            output += "\nTotal Error: (" + errorCount + "/" + count + ")";
             return output;
         }
         public override string ToString()
