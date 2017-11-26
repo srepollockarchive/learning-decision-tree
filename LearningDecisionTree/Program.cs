@@ -159,7 +159,7 @@ namespace LearningDecisionTree
             foreach (string value in data.Attributes[bestAttribute])
             {
                 ArrayList subset = SubSet(examples, value);
-                Dictionary<string, int> dictionary = SummarizeExamples(examples, value, data);
+                Dictionary<string, int> dictionary = SummarizeExamplesValue(examples, value, data);
                 foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value == examples.Count) return new Node(Label:kvp.Key, Decision:null);
                 ArrayList newAttributes = attributes;
                 newAttributes.Remove(bestAttribute);
@@ -220,7 +220,7 @@ namespace LearningDecisionTree
             foreach (string value in attributes)
             {
                 double temp = InformationGain(examples, value, Entropy(examples, value, data), data);
-                if (temp > best) // DEBUG: Check this
+                if (temp > best) // REVIEW: Depends on how you do this
                 {
                     output = value;
                     best = temp;
@@ -241,7 +241,7 @@ namespace LearningDecisionTree
         double Entropy(ArrayList examples, string targetAttribute, ID3Data data)
         {
             double result = 0;
-            Dictionary<string, int> dictionary = SummarizeExamples(examples, targetAttribute, data);
+            Dictionary<string, int> dictionary = SummarizeExamplesAttribute(examples, targetAttribute, data);
             foreach (KeyValuePair<string, int> kvp in dictionary)
             {
                 double proportion = (float)dictionary[kvp.Key] / (float)examples.Count;
@@ -256,10 +256,33 @@ namespace LearningDecisionTree
         /// <param name="targetAttribute">Target attribute to iterate over it's values</param>
         /// <param name="data">Data object</param>
         /// <returns>Dictionary of summarized examples</returns>
-        Dictionary<string, int> SummarizeExamples(ArrayList examples, string targetAttribute, ID3Data data)
+        Dictionary<string, int> SummarizeExamplesValue(ArrayList examples, string targetValue, ID3Data data)
         {
             Dictionary<string, int> dictionary = new Dictionary<string, int>();
-            foreach (string value in data.GetSimilarAttributeValues(targetAttribute))
+            foreach (string value in data.GetSimilarAttributeValues(targetValue))
+                foreach (Data example in examples)
+                {
+                    if (example.Attributes.Contains(value))
+                    {
+                        if (dictionary.ContainsKey(value))
+                            dictionary[value] += 1;
+                        else
+                            dictionary.Add(value, 1);
+                    }
+                }
+            return dictionary;
+        }
+        /// <summary>
+        /// Summarizes how many of each attribute are in the current examples.
+        /// </summary>
+        /// <param name="examples">Examples to check</param>
+        /// <param name="targetAttribute">Target attribute to iterate over it's values</param>
+        /// <param name="data">Data object</param>
+        /// <returns>Dictionary of summarized examples</returns>
+        Dictionary<string, int> SummarizeExamplesAttribute(ArrayList examples, string targetAttribute, ID3Data data)
+        {
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            foreach (string value in data.Attributes[targetAttribute])
                 foreach (Data example in examples)
                 {
                     if (example.Attributes.Contains(value))
