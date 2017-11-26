@@ -134,13 +134,27 @@ namespace LearningDecisionTree
             return output;
         }
     }
+    /// <summary>
+    /// Wrapper class for the ID3 Algorithm Decision Tree Creation.
+    /// </summary>
     public class DecisionTree
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public DecisionTree()
         {
 
         }
         #region ID3
+        /// <summary>
+        /// ID3 Algorithm
+        /// *Notes inline comments*
+        /// </summary>
+        /// <param name="examples">Example set to be used</param>
+        /// <param name="attributes">All attributes in the training data</param>
+        /// <param name="data">ID3 Data object (from the parser)</param>
+        /// <returns>Roote node of the tree</returns>
         public Node ID3(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             /**
@@ -162,27 +176,27 @@ namespace LearningDecisionTree
                 string mostCommon = GetMostCommonCategory(examples);
                 return new Node(Label:mostCommon, Decision:null);
             }
-            string bestAttribute = GetBestAttribute(examples, attributes, data);
+            string bestAttribute = GetBestAttribute(examples, attributes, data); // Gets the best attribute for the current examples
             Node tree = new Node(Label:bestAttribute, Decision:null); // This nodes decision category
             foreach (string value in data.Attributes[bestAttribute])
             {
-                ArrayList subset = SubSet(examples, value);
-                Dictionary<string, int> dictionary = SummarizeExamplesValue(examples, value, data);
+                ArrayList subset = SubSet(examples, value); // Generates a subset of examples
+                Dictionary<string, int> dictionary = SummarizeExamplesValue(examples, value, data); // Checks if the examples are empty
                 foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value == examples.Count) return new Node(Label:kvp.Key, Decision:null);
                 ArrayList newAttributes = attributes;
-                newAttributes.Remove(bestAttribute);
-                Node subtree = ID3(subset, newAttributes, data);
+                newAttributes.Remove(bestAttribute); // Removes current best attribute from list
+                Node subtree = ID3(subset, newAttributes, data); // Gets the subtree from a new tree being created by the algorithm
                 subtree.Decision = value;
-                tree.AddBranch(subtree);
+                tree.AddBranch(subtree); // Adds a child to the tree (or a branch)
             }
             return tree;
         }
         /// <summary>
         /// Returns a subset of examples with the targetValue as an attribute of theirs.
         /// </summary>
-        /// <param name="examples"></param>
-        /// <param name="targetValue"></param>
-        /// <returns></returns>
+        /// <param name="examples">Examples list (as data objects)</param>
+        /// <param name="targetValue">Target value to create a subset on</param>
+        /// <returns>Subset of examples branched on the target value</returns>
         ArrayList SubSet(ArrayList examples, string targetValue)
         {
             ArrayList output = new ArrayList();
@@ -209,6 +223,11 @@ namespace LearningDecisionTree
             foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value > max.Value) max = kvp;
             return max.Key;
         }
+        /// <summary>
+        /// Gets the most common category from the exampels (their classification)
+        /// </summary>
+        /// <param name="examples">Examples list (as data objects)</param>
+        /// <returns></returns>
         string GetMostCommonCategory(ArrayList examples)
         {
             Dictionary<string, int> dictionary = new Dictionary<string, int>();
@@ -221,6 +240,13 @@ namespace LearningDecisionTree
             foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value > max.Value) max = kvp;
             return max.Key;
         }
+        /// <summary>
+        /// Gets the best attribute for the examples.
+        /// </summary>
+        /// <param name="examples">Examples list (as data objects)</param>
+        /// <param name="attributes">Attributes in the current example list</param>
+        /// <param name="data">Data object</param>
+        /// <returns>Best attribute for the current examples</returns>
         string GetBestAttribute(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             string output = "";
@@ -236,6 +262,14 @@ namespace LearningDecisionTree
             }
             return output;
         }
+        /// <summary>
+        /// Information gain
+        /// </summary>
+        /// <param name="examples"></param>
+        /// <param name="attribute"></param>
+        /// <param name="entropyOfSet"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
         double InformationGain(ArrayList examples, string attribute, double entropyOfSet, ID3Data data)
         {
             double gain = entropyOfSet; // The current gain
@@ -246,6 +280,13 @@ namespace LearningDecisionTree
             }
             return gain;
         }
+        /// <summary>
+        /// Entropy
+        /// </summary>
+        /// <param name="examples"></param>
+        /// <param name="targetAttribute"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
         double Entropy(ArrayList examples, string targetAttribute, ID3Data data)
         {
             double result = 0;
@@ -261,7 +302,7 @@ namespace LearningDecisionTree
         /// Summarizes how many of each attribute are in the current examples.
         /// </summary>
         /// <param name="examples">Examples to check</param>
-        /// <param name="targetAttribute">Target attribute to iterate over it's values</param>
+        /// <param name="targetValue">Target attribute value to iterate over it's values</param>
         /// <param name="data">Data object</param>
         /// <returns>Dictionary of summarized examples</returns>
         Dictionary<string, int> SummarizeExamplesValue(ArrayList examples, string targetValue, ID3Data data)
@@ -305,28 +346,57 @@ namespace LearningDecisionTree
         }
         #endregion
     }
+    /// <summary>
+    /// Node
+    /// </summary>
     public class Node
     {
+        /// <summary>
+        /// Label (base classification or decision classifiaction (attribute class))
+        /// </summary>
         public string Label { get; set; } 
+        /// <summary>
+        /// Decision (attribute value to check)
+        /// </summary>
         public string Decision { get; set; }
+        /// <summary>
+        /// Children from Label class each with a different value of the attribute
+        /// </summary>
         public ArrayList Children { get; set; }
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public Node()
         {
             this.Label = null;
             this.Decision = null;
             this.Children = new ArrayList();
         }
+        /// <summary>
+        /// Specify Label||Decision (inclusive)
+        /// </summary>
+        /// <param name="Label"></param>
+        /// <param name="Decision"></param>
         public Node(string Label, string Decision)
         {
             this.Label = Label;
             this.Decision = Decision;
             this.Children = new ArrayList();
         }
+        /// <summary>
+        /// Adds a child to the list.
+        /// </summary>
+        /// <param name="root">Subtree root node</param>
         public void AddBranch(Node root)
         {
             this.Children.Add(root);
         }
-        public void PrintPretty(string indent, bool last)
+        /// <summary>
+        /// Prints the Node as a tree instead of a single node
+        /// </summary>
+        /// <param name="indent"></param>
+        /// <param name="last"></param>
+        void PrintPretty(string indent, bool last)
         {
             Console.Write(indent);
             if (last)
@@ -345,6 +415,11 @@ namespace LearningDecisionTree
                 ((Node)(Children[i])).PrintPretty(indent, i == Children.Count - 1);
         }
         #region Check Data
+        /// <summary>
+        /// Traverse the tree with the example.
+        /// </summary>
+        /// <param name="example">Example to traverse the tree with</param>
+        /// <returns>The classification given to the example from the tree</returns>
         string Traverse(Data example)
         {
             if (Children.Count == 0) // NOTE: Hit leaf
@@ -361,6 +436,11 @@ namespace LearningDecisionTree
             }
             return null; // DEBUG: Should never hit
         }
+        /// <summary>
+        /// Gets all the tree classification for the given test data object
+        /// </summary>
+        /// <param name="testingData">Data object to test with</param>
+        /// <returns>ArrayList of Tuples[string, string] (name, classification)</returns>
         public ArrayList GetTreeClassifications(ID3Data testingData)
         {
             ArrayList output = new ArrayList();
@@ -378,28 +458,59 @@ namespace LearningDecisionTree
             return "";
         }
     }
+    /// <summary>
+    /// ID3 Data object (Given from parser to split data for easier work)
+    /// </summary>
     public class ID3Data
     {
+        /// <summary>
+        /// All categories or final classification examples can be.
+        /// </summary>
         public ArrayList Categories { get; set; }
+        /// <summary>
+        /// A dictionary of all attributes [key, value] where key is the 
+        /// attribute type (class) and value is all the types it can be
+        /// </summary>
         public Dictionary<string, ArrayList> Attributes { get; set; }
+        /// <summary>
+        /// All the testing data read in by the parser (in Data object format)
+        /// </summary>
+        /// <returns></returns>
         public ArrayList TestData { get; set; }
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public ID3Data() 
         {
             this.Attributes = new Dictionary<string, ArrayList>();
             this.TestData = new ArrayList();
         }
+        /// <summary>
+        /// Gets all attribute values from the dictionary.
+        /// </summary>
+        /// <returns>All attribute values as strings in an ArrayList</returns>
         public ArrayList GetAttributeValues()
         {
             ArrayList output = new ArrayList();
             foreach (KeyValuePair<string, ArrayList> kvp in Attributes) foreach (string value in Attributes[kvp.Key]) output.Add(value);
             return output;
         }
+        /// <summary>
+        /// Gets all attribute types (or classes) as a string ArrayList.
+        /// </summary>
+        /// <returns>All types (classes) of each attribute</returns>
         public ArrayList GetKeyAttributes()
         {
             ArrayList output = new ArrayList();
             foreach (KeyValuePair<string, ArrayList> kvp in Attributes) output.Add(kvp.Key);
             return output;
         }
+        /// <summary>
+        /// **REQUIRES UNIQUE ATTRIBUTE VALUES**
+        /// Gets similar attribute values in the same type as this attribute value.
+        /// </summary>
+        /// <param name="attribute">Attribute value</param>
+        /// <returns>string ArrayList of values</returns>
         public ArrayList GetSimilarAttributeValues(string attribute)
         {
             ArrayList output = new ArrayList();
@@ -413,6 +524,11 @@ namespace LearningDecisionTree
             }
             return output;
         }
+        /// <summary>
+        /// Compares the classifications given from the tree with the current testData.
+        /// </summary>
+        /// <param name="classifications">ArrayList of classifications as Tuples (string:name, string:classification)</param>
+        /// <returns>String of parsed information</returns>
         public string CompareClassifications(ArrayList classifications)
         {
             string output = "";
