@@ -12,8 +12,8 @@
            // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/learningdecisiontree/bin/Debug/netcoreapp2.0/learningdecisiontree.dll",
             "args": [
-                "${workspaceFolder}/TestData/train-titanic-fatalities.data",
-                "${workspaceFolder}/TestData/test-titanic-fatalities.data"
+                "${workspaceFolder}/LearningDecisionTree/TestData/train-titanic-fatalities.data",
+                "${workspaceFolder}/LearningDecisionTree/TestData/test-titanic-fatalities.data"
             ],
             "cwd": "${workspaceFolder}/learningdecisiontree",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window

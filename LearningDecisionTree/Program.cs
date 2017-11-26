@@ -18,8 +18,10 @@ namespace LearningDecisionTree
             string trainingFileName = args[0];
             string testingFileName = args[1];
             ID3Data id3Data = parser.ParseID3InformationFile(trainingFileName);
-            Node learnedTree = dt.ID3(id3Data.TestData, id3Data.GetRawAttributeValues(), id3Data);
+            Node learnedTree = dt.ID3(id3Data.TestData, id3Data.GetKeyAttributes(), id3Data);
             Console.WriteLine(learnedTree.ToString());
+            Console.WriteLine("\n\nPress any key to exit...");
+            Console.ReadKey();
         }
         /// <summary>
         /// Prints the help command to the console for the user.
@@ -131,6 +133,13 @@ namespace LearningDecisionTree
         {
 
         }
+        /// <summary>
+        /// Creates a decision tree with the ID3 algorithm.
+        /// </summary>
+        /// <param name="examples">Training examples</param>
+        /// <param name="attributes">Key attributes (not their values)</param>
+        /// <param name="data">Data object</param>
+        /// <returns>Root node of the tree</returns>
         public Node ID3(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             /**
@@ -151,7 +160,7 @@ namespace LearningDecisionTree
             if (attributes.Count == 0) return new Node(GetMostCommonCategory(examples));
             string bestAttribute = ChooseAttribute(examples, attributes, data);
             Node tree = new Node(bestAttribute);
-            foreach (string value in data.GetSimilarAttributeValues(bestAttribute))
+            foreach (string value in data.Attributes[bestAttribute])
             {
                 ArrayList subset = SubSet(examples, value);
                 ArrayList removedAttributes = (ArrayList)(attributes.Clone());
@@ -167,7 +176,8 @@ namespace LearningDecisionTree
             string firstCategory = dataObject.Category;
             foreach (Data example in examples)
             {
-                if (example.Category != firstCategory) return false;
+                if (example.Category != firstCategory) 
+                    return false;
             }
             return true;
         }
@@ -223,20 +233,21 @@ namespace LearningDecisionTree
         double InformationGain(ArrayList examples, string attribute, double entropyOfSet, ID3Data data)
         {
             double gain = entropyOfSet;
-            foreach (string value in data.GetSimilarAttributeValues(attribute))
+            foreach (string value in data.Attributes[attribute])
             {
                 ArrayList subset = SubSet(examples, value);
                 gain -= subset.Count / examples.Count * Entropy(subset);
             }
-            return 0.0;
+            return gain;
         }
         double Entropy(ArrayList examples)
         {
             double output = 0;
+            float proportion = 0;
             Dictionary<string, int> dictionary = SummarizeExamples(examples);
             foreach (KeyValuePair<string, int> kvp in dictionary)
             {
-                double proportion = dictionary[kvp.Key] / examples.Count;
+                proportion = (float)kvp.Value / (float)examples.Count;
                 output -= proportion * Math.Log(proportion, 2);
             }
             return output;
@@ -292,13 +303,13 @@ namespace LearningDecisionTree
             this.Attributes = new Dictionary<string, ArrayList>();
             this.TestData = new ArrayList();
         }
-        public ArrayList GetRawAttributeValues()
+        public ArrayList GetAttributeValues()
         {
             ArrayList output = new ArrayList();
             foreach (KeyValuePair<string, ArrayList> kvp in Attributes) foreach (string value in Attributes[kvp.Key]) output.Add(value);
             return output;
         }
-        public ArrayList GetRawAttributes()
+        public ArrayList GetKeyAttributes()
         {
             ArrayList output = new ArrayList();
             foreach (KeyValuePair<string, ArrayList> kvp in Attributes) output.Add(kvp.Key);
