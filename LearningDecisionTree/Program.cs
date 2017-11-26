@@ -59,7 +59,7 @@ namespace LearningDecisionTree
             ArrayList cleanFileContents = RemoveCommentsAndEmptyLines(rawFileContents);
             int i = 0;
             ID3Data id3Data = new ID3Data();
-            id3Data.Labels = new ArrayList() { 
+            id3Data.Categories = new ArrayList() { 
                 cleanFileContents[i++], 
                 cleanFileContents[i++] // NOTE: This gets line 0 and 1 (the class labels)
                 };
@@ -124,76 +124,81 @@ namespace LearningDecisionTree
             return output;
         }
     }
-    class Tree
+    public class Tree
     {
-        Node Root { get; set; }
         public Tree()
         {
 
         }
-        public Tree(Node root)
+        public void ID3(ArrayList examples, ArrayList attributes)
         {
-            this.Root = root;
-        }
-        /// <summary>
-        /// ID3 Learning Tree Algorithm.
-        /// </summary>
-        /// <param name="examples">Example data</param>
-        /// <param name="attributes">Attribute data</param>
-        /// <returns>Decision tree built through examples and attributes</returns>
-        public static Tree BuildID3Tree(string[] examples, string[] attributes) // REVIEW: Should these be something else?
-        {
-            Tree t = null;
             /**
-             *  if all examples in same catgorty then:
-             *      return a leaf node with that category
-             *  if attributes is empty then:
-             *      return a leaf node with the most common category in examples
-             *  best = Choose-Attribute(examples, attributes)
-             *  tree = new Treee with Best as root attribute test
-             *  foreach value v of best:
-             *      examples = subset of examples with best == v
-             *      subtree = ID3(examples, attributes - best)
-             *      add a branch to tree with best == v && subtree beneath
-             *  return tree
+                if all instances in examples are class P:
+                    create node P and stop
+                else:
+                    select an attribute and create a decision node
+                    partition C into subsets according to values of V
+                    apply recursively to each of the subsets
              */
-            return t;
+             
         }
-        public override string ToString() // TODO: Write an overrided ToString() funtion to print to files for saving data
+        double Entropy(ArrayList examples)
         {
-            return base.ToString();
+            double output = 0;
+            Dictionary<string, int> dictionary = SummarizeExamples(examples, targetAttribute);
+            foreach (KeyValuePair<string, int> kvp in dictionary)
+            {
+                float proportion = dictionary[kvp.Key] / examples.Count;
+                output -= proportion * Math.Log(proportion, 2);
+            }
+            return output;
+        }
+        Dictionary<string, int> SummarizeExamples(ArrayList examples, string targetAttribute)
+        {
+            Dictionary<string, int> output = new Dictionary<string, int>();
+            foreach (Data example in examples)
+            {
+                foreach (string value in example.Attributes)
+                {
+                    output[value] += 1;
+                }
+            }
+            return output;
         }
     }
     public abstract class Node
     {
-        public ArrayList children { get; set; }
-        public int label { get; set; } // NOTE: either [1||positive] || [2||negative]
-        public Node(int label)
+        /// <summary>
+        /// Label for the node
+        /// </summary>
+        public string Category { get; set; } 
+        public ArrayList Children { get; set; }
+        public Node(string category)
         {
-            this.label = label;
+            this.Category = category;
+        }
+        public void AddBranch(Tree root)
+        {
+            this.Children.Add(root);
         }
     }
-    public class Action : Node
+    /// <summary>
+    /// Represents a choice between a number of alternatives.
+    /// </summary>
+    public class DecisionNode: Node
     {
-        public Action(int label): base(label)
-        {
-
-        }
-        public void PerformAction()
-        {
-            // TODO: Something here?
-        }
-    }
-    class State : Node
-    {
-        public State(int label): base(label)
-        {
-            
-        }
+        public DecisionNode(string category): base(category) {}
         public bool Decision()
         {
-            return true; // TODO: This is where decisions go on?
+            return true; // TODO: Some decision happens here
         }
+    }
+    /// <summary>
+    /// Represents a classification or decision.
+    /// </summary>
+    public class LeafNode: Node
+    {
+        public LeafNode(string category): base(category) {}
     }
     /// <summary>
     /// Attribute class for the Data class
@@ -214,7 +219,7 @@ namespace LearningDecisionTree
     }
     class ID3Data
     {
-        public ArrayList Labels { get; set; }
+        public ArrayList Categories { get; set; }
         public Dictionary<string, ArrayList> Attributes { get; set; }
         public ArrayList TestData { get; set; }
         public ID3Data() 
@@ -225,7 +230,7 @@ namespace LearningDecisionTree
         public override string ToString()
         {
             string output = "ID3Data [ \nLabels: \n";
-            foreach (string label in this.Labels) output += "\t" + label + ", \n";
+            foreach (string label in this.Categories) output += "\t" + label + ", \n";
             output += "],\nAttributes: [\n";
             foreach (KeyValuePair<string, ArrayList> kvp in this.Attributes)
             {
