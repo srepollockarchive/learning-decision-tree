@@ -133,138 +133,131 @@ namespace LearningDecisionTree
         {
 
         }
-        /// <summary>
-        /// Creates a decision tree with the ID3 algorithm.
-        /// </summary>
-        /// <param name="examples">Training examples</param>
-        /// <param name="attributes">Key attributes (not their values)</param>
-        /// <param name="data">Data object</param>
-        /// <returns>Root node of the tree</returns>
         public Node ID3(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             /**
-                if (CheckSameCategory(examples))
-                    return new LeafNode(examples.first.category)
-                if (attributes.count == 0)
-                    return new LeafNode(GetMostCommonCategory(examples))
-                string bestAttribute = ChooseAttribute(examples, attributes) // best classifies examples
-                Node tree = new Node(bestAttribute) // new node with category of best attribute
-                foreach (string value in bestAttribute)
-                    ArrayList subset = Subset(examples, value) // examples where example.Attribute[bestAttribute] == value
-                    ArrayList removedAttributes = attributes.remove(bestAttribute)
-                    Node subtree = ID3(subset, removedAttributes)
-                    node.AddBranch(new Node());
-                return tree;
+             *  A <- best attribute
+             *  Assign A as decision attribute for node
+             *  foreach value of A
+             *      create a descendent of node
+             *  sort training examples to leaves
+             *  if examples perfectly classified STOP
+             *  else iterate over leaves
              */
-            #region Leaf Nodes
-            if (CheckSameCategory(examples))
-            {
-                Node node = new Node();
-                node.Label = ((Data)(examples[0])).Category;
-                return node;
-            }
+            //  if all example same category (pure)
+            //      return leaf with that category
+            //  if attributes.empty
+            //      return a leaf with most common category in examples
             if (attributes.Count == 0)
             {
-                Node node = new Node();
-                node.Label = GetMostCommonCategory(examples);
-                return node;
+                string mostCommon = GetMostCommonValue(examples);
+                return new Node(Label:mostCommon, Decision:null);
             }
-            #endregion
-            string bestAttribute = ChooseAttribute(examples, attributes, data);
-            Node tree = new Node();
-            tree.Label = bestAttribute;
+            string bestAttribute = GetBestAttribute(examples, attributes, data);
+            Node tree = new Node(Label:bestAttribute, Decision:null); // This nodes decision category
             foreach (string value in data.Attributes[bestAttribute])
             {
                 ArrayList subset = SubSet(examples, value);
-                ArrayList removedAttributes = (ArrayList)(attributes.Clone());
-                removedAttributes.Remove(bestAttribute);
-                Node subTree = ID3(examples, removedAttributes, data);
-                subTree.Decision = value;
-                tree.AddBranch(subTree);
+                Dictionary<string, int> dictionary = SummarizeExamples(examples, value, data);
+                foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value == examples.Count) return new Node(Label:kvp.Key, Decision:null);
+                ArrayList newAttributes = attributes;
+                newAttributes.Remove(bestAttribute);
+                Node subtree = ID3(subset, newAttributes, data);
+                subtree.Decision = value;
+                tree.AddBranch(subtree);
             }
             return tree;
         }
-        bool CheckSameCategory(ArrayList examples)
+        /// <summary>
+        /// Returns a subset of examples with the targetValue as an attribute of theirs.
+        /// </summary>
+        /// <param name="examples"></param>
+        /// <param name="targetValue"></param>
+        /// <returns></returns>
+        ArrayList SubSet(ArrayList examples, string targetValue)
         {
-            Data dataObject = (Data)(examples[0]);
-            string firstCategory = dataObject.Category;
-            foreach (Data example in examples)
-            {
-                if (example.Category != firstCategory) 
-                    return false;
-            }
-            return true;
-        }
-        string GetMostCommonCategory(ArrayList examples)
-        {
-            string output = "";
-            int best = int.MinValue;
-            Dictionary<string, int> dictionary = SummarizeExamples(examples);
-            foreach (KeyValuePair<string, int> kvp in dictionary)
-            {
-                if (dictionary[kvp.Key] > best)
-                {
-                    output = kvp.Key;
-                    best = dictionary[kvp.Key];
-                }
-            }
+            ArrayList output = new ArrayList();
+            foreach (Data example in examples) if (example.Attributes.Contains(targetValue)) output.Add(example);
             return output;
         }
-        Dictionary<string, int> SummarizeExamples(ArrayList examples)
+        /// <summary>
+        /// Gets the most common attribute from the examples.
+        /// </summary>
+        /// <param name="examples">Example list</param>
+        /// <returns>Most Common attribute</returns>
+        string GetMostCommonValue(ArrayList examples)
         {
             Dictionary<string, int> dictionary = new Dictionary<string, int>();
             foreach (Data example in examples)
             {
-                int value;
-                if (dictionary.TryGetValue(example.Category, out value))
-                    dictionary[example.Category] += 1;
-                else
-                    dictionary.Add(example.Category, 1);
+                foreach (string value in example.Attributes)
+                {
+                    if (dictionary.ContainsKey(value))  dictionary[value] += 1;
+                    else dictionary.Add(value, 1);
+                }
             }
-            return dictionary;
+            KeyValuePair<string, int> max = new KeyValuePair<string, int>();
+            foreach (KeyValuePair<string, int> kvp in dictionary) if (kvp.Value > max.Value) max = kvp;
+            return max.Key;
         }
-        string ChooseAttribute(ArrayList examples, ArrayList attributes, ID3Data data)
+        string GetBestAttribute(ArrayList examples, ArrayList attributes, ID3Data data)
         {
             string output = "";
             double best = double.MinValue;
-            foreach(string attribute in attributes)
+            foreach (string value in attributes)
             {
-                double temp = InformationGain(examples, attribute, Entropy(examples), data);
-                if (temp > best)
+                double temp = InformationGain(examples, value, Entropy(examples, value, data), data);
+                if (temp > best) // DEBUG: Check this
                 {
-                    output = attribute;
+                    output = value;
                     best = temp;
                 }
             }
             return output;
         }
-        ArrayList SubSet(ArrayList examples, string attributeValue)
-        {
-            ArrayList output = new ArrayList();
-            foreach (Data example in examples) if (example.Attributes.Contains(attributeValue)) output.Add(example);
-            return output;
-        }
         double InformationGain(ArrayList examples, string attribute, double entropyOfSet, ID3Data data)
         {
-            double gain = entropyOfSet;
-            foreach (string value in data.Attributes[attribute])
+            double gain = entropyOfSet; // The current gain
+            foreach (string value in data.Attributes[attribute]) // For each value the attribute can be
             {
                 ArrayList subset = SubSet(examples, value);
-                gain -= subset.Count / examples.Count * Entropy(subset);
+                gain -= (float)subset.Count / (float)examples.Count * (float)Entropy(subset, attribute, data);
             }
             return gain;
         }
-        double Entropy(ArrayList examples)
+        double Entropy(ArrayList examples, string targetAttribute, ID3Data data)
         {
-            double output = 0;
-            float proportion = 0;
-            Dictionary<string, int> dictionary = SummarizeExamples(examples);
+            double result = 0;
+            Dictionary<string, int> dictionary = SummarizeExamples(examples, targetAttribute, data);
             foreach (KeyValuePair<string, int> kvp in dictionary)
             {
-                proportion = (float)kvp.Value / (float)examples.Count;
-                output -= proportion * Math.Log(proportion, 2);
+                double proportion = (float)dictionary[kvp.Key] / (float)examples.Count;
+                result -= proportion * Math.Log(proportion, 2);
             }
-            return output;
+            return result;
+        }
+        /// <summary>
+        /// Summarizes how many of each attribute are in the current examples.
+        /// </summary>
+        /// <param name="examples">Examples to check</param>
+        /// <param name="targetAttribute">Target attribute to iterate over it's values</param>
+        /// <param name="data">Data object</param>
+        /// <returns>Dictionary of summarized examples</returns>
+        Dictionary<string, int> SummarizeExamples(ArrayList examples, string targetAttribute, ID3Data data)
+        {
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            foreach (string value in data.GetSimilarAttributeValues(targetAttribute))
+                foreach (Data example in examples)
+                {
+                    if (example.Attributes.Contains(value))
+                    {
+                        if (dictionary.ContainsKey(value))
+                            dictionary[value] += 1;
+                        else
+                            dictionary.Add(value, 1);
+                    }
+                }
+            return dictionary;
         }
     }
     public class Node
@@ -276,6 +269,12 @@ namespace LearningDecisionTree
         {
             this.Label = null;
             this.Decision = null;
+            this.Children = new ArrayList();
+        }
+        public Node(string Label, string Decision)
+        {
+            this.Label = Label;
+            this.Decision = Decision;
             this.Children = new ArrayList();
         }
         public void AddBranch(Node root)
@@ -339,7 +338,7 @@ namespace LearningDecisionTree
                     return output;
                 }
             }
-            return null;
+            return output;
         }
         public override string ToString()
         {
