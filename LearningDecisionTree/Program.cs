@@ -536,7 +536,9 @@ namespace LearningDecisionTree
             foreach (Tuple<string, string> classification in classifications) {
                 if (((Data)(TestData[count])).Category != classification.Item2)
                 {
-                    output += classification.Item1 + ": CLASSIFICATION INCORRECT\n";
+                    output += classification.Item1 + ": CLASSIFICATION INCORRECT\n\t" 
+                        + classification.Item2 + " should have been " 
+                        + ((Data)(TestData[count])).Category + "\n";
                     errorCount++;
                 }
                 count++;
